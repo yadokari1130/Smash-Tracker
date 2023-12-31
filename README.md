@@ -21,6 +21,11 @@
 <!-- TOC -->
 
 # インストール方法
+> [!WARNING]
+> 本拡張機能のインストールには開発者モードを使用します  
+> 作者が問題がないことを確認していますが、本拡張機能の使用に対して、作者は責任を負いかねます  
+> 心配な方はご自身でビルドしたのちにインストールするようお願いいたします
+
 ## Chrome / Vivaldi / Microsoft Edge / Opera など
 1. https://github.com/yadokari1130/Smash-Tracker/releases/latest から`SmashTracker_Chrome.zip`をダウンロードします
 2. `SmashTracker_Chrome.zip`を好きな場所に解凍します
