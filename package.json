@@ -1,7 +1,7 @@
 {
   "name": "smash-tracker",
   "displayName": "Smash Tracker",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Extention to check Smash Bros results",
   "author": "yadokari",
   "scripts": {
