@@ -237,10 +237,10 @@ function getAllSets(playerId, page, apiKey) {
     })
 }
 
-function getCurrentStanding(playerName, eventId, apiKey) {
+function getCurrentStanding(playerName, eventId, playerId, apiKey) {
     return axios.post("https://api.start.gg/gql/alpha",{
         query: `
-                query currentStanding($playerName: String!, $eventId: ID!) {
+                query CurrentStanding($playerName: String!, $eventId: ID!, $playerId: ID!) {
                     event(id: $eventId) {
                         entrants(query: {page: 1, perPage: 500, filter: {name: $playerName}}) {
                             nodes {
@@ -249,16 +249,25 @@ function getCurrentStanding(playerName, eventId, apiKey) {
                                     player {
                                         id
                                     }
-                                }    
+                                }
                                 standing {
                                     placement
+                                }
+                            }
+                        }
+                        sets (filters: {playerIds: [$playerId]}, sortType: RECENT) {
+                            nodes {
+                                displayScore
+                                fullRoundText
+                                phaseGroup {
+                                    displayIdentifier
                                 }
                             }
                         }
                     }
                 }
             `,
-        variables: {playerName: playerName, eventId: eventId}
+        variables: {playerName: playerName, eventId: eventId, playerId: playerId}
     }, {
         headers: {
             "Content-Type": "application/json",
@@ -284,7 +293,6 @@ function getSets(ids, apiKey) {
                                     startAt
                                 }
                             }
-                            
                         `
                     })}
                 }
@@ -474,6 +482,7 @@ function IndexPopup() {
 
                                             tp = res.data.event.entrants.pageInfo.totalPages
                                             for (let node of res.data.event.entrants.nodes) {
+                                                if (players.includes({id: node.participants[0].player.id, label: node.name})) continue
                                                 players.push({id: node.participants[0].player.id, label: node.name})
                                             }
                                             fp += res.data.event.entrants.nodes.length
@@ -575,8 +584,8 @@ function IndexPopup() {
                             if (!(value.id in pInfo)) pInfo[value.id] = {}
 
                             try {
-                                let res = (await getCurrentStanding(value.label, eventId, apiKey)).data
-                                setTemp(JSON.stringify(res))
+                                let res = (await getCurrentStanding(value.label, eventId, value.id, apiKey)).data
+                                // console.log(JSON.stringify(res))
                                 // await new Promise(resolve => setTimeout(resolve, 5000))
                                 for (let node of res.data.event.entrants.nodes) {
                                     // setTemp(`${node.participants[0].player.id} ${value.id} ${node.participants[0].player.id === value.id} ${node.standing.placement}`)
@@ -585,6 +594,14 @@ function IndexPopup() {
                                         pInfo[value.id].seed = node.initialSeedNum
                                         break
                                     }
+                                }
+
+                                pInfo[value.id].sets = []
+                                for (let node of res.data.event.sets.nodes) {
+                                    const re = new RegExp(`(.+? [0-9]+?) - (${value.label} [0-9]+?)`)
+                                    const matched = re.exec(node.displayScore)
+                                    const score = matched == null ? node.displayScore : `${matched[2]} - ${matched[1]}`
+                                    pInfo[value.id].sets.push({score: score, round: node.fullRoundText, phaseId: node.phaseGroup.displayIdentifier})
                                 }
 
                                 if (!("recentStandings" in pInfo[value.id])) {
@@ -625,6 +642,20 @@ function IndexPopup() {
                                             </TableRow>
                                         </TableBody>
                                     </Table>
+
+                                    <Typography sx={{mx: 2, mt: 3, mb: 0}}>対戦履歴</Typography>
+                                    <Table>
+                                        <TableBody>
+                                            {playerInfo[player.id].sets.map(s => {
+                                                return <TableRow>
+                                                    <TableCell>{s.phaseId} - {s.round}</TableCell>
+                                                    <TableCell>{s.score}</TableCell>
+                                                </TableRow>
+                                            })}
+                                        </TableBody>
+                                    </Table>
+
+                                    {/*<p>{JSON.stringify(playerInfo[player.id].sets)}</p>*/}
                                 </AccordionDetails>
                             </Accordion>
                             <Accordion disableGutters>
@@ -633,7 +664,7 @@ function IndexPopup() {
                                 <AccordionDetails>
                                     <Table>
                                         <TableBody>
-                                            {playerInfo[player.id]["recentStandings"].map((e, i) => {
+                                            {(playerInfo[player.id]["recentStandings"] || []).map((e, i) => {
                                                 return <Fragment>
                                                     <StripeTableRow>
                                                         <TableCell>
